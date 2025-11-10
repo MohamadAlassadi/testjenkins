@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     triggers {
+        // يفحص التغييرات كل دقيقتين
         pollSCM('H/2 * * * *')
     }
 
@@ -12,6 +13,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo "📥 Cloning repository..."
@@ -31,40 +33,42 @@ pipeline {
             }
         }
 
-       stage('Build') {
-    steps {
-        echo "🏗️ Building the Python project..."
-        bat '''
-            call venv\\Scripts\\activate
-            python -m py_compile jenkins.py
-            if %errorlevel% neq 0 exit /b %errorlevel%
-        '''
-    }
-}
+        stage('Build') {
+            steps {
+                echo "🏗️ Building the Python project..."
+                bat '''
+                    call %VENV%\\Scripts\\activate
+                    echo Compiling Python files...
+                    python -m py_compile jenkins.py
+                    if %errorlevel% neq 0 exit /b %errorlevel%
+                '''
+            }
+        }
 
-stage('Test') {
-    steps {
-        echo "🧪 Running tests..."
-        bat '''
-            call venv\\Scripts\\activate
-            python jenkins.py > output.txt
-            findstr "Hello" output.txt
-            if %errorlevel% neq 0 exit /b %errorlevel%
-        '''
-    }
-}
+        stage('Test') {
+            steps {
+                echo "🧪 Running tests..."
+                bat '''
+                    call %VENV%\\Scripts\\activate
+                    echo Running jenkins.py script...
+                    python jenkins.py > output.txt
+                    type output.txt
+                    findstr "Hello" output.txt
+                    if %errorlevel% neq 0 exit /b %errorlevel%
+                '''
+            }
+        }
 
-stage('Deploy') {
-    steps {
-        echo "🚀 Deploying ${APP_NAME}..."
-        bat '''
-            if not exist %DEPLOY_DIR% mkdir %DEPLOY_DIR%
-            copy jenkins.py %DEPLOY_DIR%
-            echo Application deployed to %DEPLOY_DIR%
-        '''
-    }
-}
-
+        stage('Deploy') {
+            steps {
+                echo "🚀 Deploying ${APP_NAME}..."
+                bat '''
+                    if not exist %DEPLOY_DIR% mkdir %DEPLOY_DIR%
+                    copy jenkins.py %DEPLOY_DIR%
+                    echo Application deployed to %DEPLOY_DIR%
+                '''
+            }
+        }
     }
 
     post {
